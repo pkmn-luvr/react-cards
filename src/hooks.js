@@ -1,5 +1,5 @@
 
-import { useState } from "react"; 
+import { useState, useEffect } from "react"; 
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid'; 
 
@@ -23,14 +23,28 @@ export function useFlip() {
 //     return [data, addDataFromURL];
 // };
 
+// Further Study #2 - syncs to local storage after every state change
+function useLocalStorage(key, initialValue) {
+    const storedValue = JSON.parse(localStorage.getItem(key));
+    const [value, setValue] = useState(storedValue || initialValue);
+
+    useEffect(() => {
+        localStorage.setItem(key, JSON.stringify(value));
+    }, [key, value]);
+
+    return [value, setValue]; 
+}
 
 // Step Four - useAxios in PokeDex and PlayingCardList...Init with baseUrl, returns [data, fn] to append data from `${baseUrl}${endpoint}` w/ unique ID
-export const useAxios = (baseURL) => {
-    const [data, setData] = useState([]);
+// Further Study #1 - Added format function that extracts only the information we need to render our components
+export const useAxios = (baseURL, formatFunc) => {
+    const [data, setData] = useLocalStorage(`axios-data-${baseURL}`, []);
     
     const addDataFromURL = async (endpoint = '') => {
         const response = await axios.get(`${baseURL}${endpoint}`);
-        setData(currentData => [...currentData, {...response.data, id: uuidv4() }]);
+        // Apply the formatting function to the response data
+        const formattedData = formatFunc ? formatFunc(response.data) : response.data;
+        setData(currentData => [...currentData, { ...formattedData, id: uuidv4() }]);
     };
 
     return [data, addDataFromURL];
